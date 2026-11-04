@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Solo Tilt — Interactive 3D Phone Effect</title>
+  <style>
+    :root {
+      --bg-center: #262626;
+      --bg-edge: #080808;
+      --accent-red: #ff3b30;
+      --text-main: #ffffff;
+      --text-muted: #8e8e93;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 42%, var(--bg-center) 0%, #121212 55%, var(--bg-edge) 100%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Верхняя панель */
+    header {
+      width: 100%;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .sensor-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sensor-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .sensor-btn.active {
+      border-color: #30d158;
+      color: #30d158;
+      background: rgba(48, 209, 88, 0.12);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #8e8e93;
+    }
+
+    .sensor-btn.active .status-dot {
+      background: #30d158;
+      box-shadow: 0 0 8px #30d158;
+    }
+
+    /* 3D Сцена и iPhone */
+    .stage {
+      perspective: 1100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex: 1;
+      width: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .stage:active {
+      cursor: grabbing;
+    }
+
+    .iphone-3d {
+      position: relative;
+      width: 250px;
+      height: 515px;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    /* Слои корпуса для создания настоящего 3D-объема при повороте */
+    .chassis-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: 44px;
+      background: linear-gradient(135deg, #d4d4d8 0%, #71717a 45%, #e4e4e7 75%, #52525b 100%);
+      pointer-events: none;
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Задняя крышка */
+    .iphone-back {
+      position: absolute;
+      inset: 0;
+      border-radius: 44px;
+      background: #27272a;
+      transform: translateZ(-16px);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.75);
+    }
+
+    /* Передняя панель */
+    .iphone-front {
+      position: absolute;
+      inset: 0;
+      border-radius: 44px;
+      background: #000;
+      padding: 9px;
+      transform: translateZ(1px);
+      box-shadow: inset 0 0 0 2px #d4d4d8, inset 0 0 0 4px #18181b;
+      overflow: hidden;
+    }
+
+    /* Экран iOS */
+    .screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 36px;
+      overflow: hidden;
+      background: linear-gradient(165deg, #0b243b 0%, #1d5a6c 38%, #63b4b8 72%, #d8a47f 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px 14px 14px;
+    }
+
+    /* Контент экрана, который размывается при наклоне */
+    .screen-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      will-change: filter, opacity;
+      transition: filter 0.04s linear;
+    }
+
+    /* Dynamic Island (не размывается, остается поверх экрана) */
+    .dynamic-island {
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 76px;
+      height: 22px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 7px;
+    }
+
+    .camera-lens {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #1e3a8a 20%, #090d16 70%);
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px 0;
+      margin-bottom: 14px;
+    }
+
+    /* Виджеты и иконки в стиле iOS со скриншота */
+    .widgets-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .widget {
+      height: 98px;
+      border-radius: 18px;
+      padding: 10px;
+      font-size: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(10px);
+    }
+
+    .widget-dark {
+      background: rgba(20, 20, 25, 0.85);
+      color: #fff;
+    }
+
+    .widget-blue {
+      background: linear-gradient(145deg, #1e40af, #3b82f6);
+      color: #fff;
+    }
+
+    .widget-wide {
+      margin-top: 10px;
+      height: 96px;
+      border-radius: 18px;
+      background: rgba(18, 22, 28, 0.88);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .chart-line {
+      width: 100%;
+      height: 36px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chart-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 11px 10px;
+      margin-top: 12px;
+      margin-bottom: auto;
+    }
+
+    .app-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .app-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .app-label {
+      font-size: 8.5px;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .dock {
+      height: 62px;
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    /* Эффект блика и затемнения приватного стекла при наклоне */
+    .privacy-glare {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(105deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.18) 50%, rgba(0,0,0,0.45) 85%);
+      opacity: 0;
+      z-index: 8;
+      border-radius: 36px;
+    }
+
+    /* Нижняя панель с линейкой градусов */
+    .controls-wrapper {
+      width: 100%;
+      max-width: 340px;
+      padding-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .controls-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .angle-readout {
+      color: #fff;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+    }
+
+    .ruler-viewport {
+      position: relative;
+      width: 100%;
+      height: 54px;
+      overflow: hidden;
+      cursor: ew-resize;
+      touch-action: none;
+      mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+    }
+
+    /* Красный центральный указатель */
+    .center-indicator {
+      position: absolute;
+      left: 50%;
+      top: 16px;
+      bottom: 6px;
+      width: 2px;
+      background: var(--accent-red);
+      transform: translateX(-50%);
+      z-index: 5;
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(255, 59, 48, 0.7);
+    }
+
+    .ruler-track {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      height: 100%;
+      display: flex;
+      align-items: flex-end;
+      will-change: transform;
+    }
+
+    .tick {
+      position: absolute;
+      bottom: 10px;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateX(-50%);
+    }
+
+    .tick.minor {
+      height: 8px;
+    }
+
+    .tick.major {
+      height: 14px;
+      width: 1.5px;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .tick-label {
+      position: absolute;
+      bottom: 30px;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.65);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .reset-btn {
+      margin-top: 6px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px 10px;
+      transition: color 0.2s;
+    }
+
+    .reset-btn:hover {
+      color: #fff;
+    }
+
+    @media (max-height: 700px) {
+      .iphone-3d {
+        transform: scale(0.85);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="#" class="logo">solotilt.com</a>
+    <button id="sensorBtn" class="sensor-btn">
+      <span class="status-dot"></span>
+      <span id="sensorBtnText">Включить датчики наклона</span>
+    </button>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="iphone-3d" id="iphone">
+      <div class="iphone-back"></div>
+      <!-- Слои металлической рамки создаются скриптом для плавного 3D-борта -->
+      <div id="chassisLayers"></div>
+
+      <div class="iphone-front">
+        <div class="screen">
+          <div class="dynamic-island">
+            <div class="camera-lens"></div>
+          </div>
+
+          <div class="privacy-glare" id="glare"></div>
+
+          <div class="screen-content" id="screenContent">
+            <div>
+              <div class="status-bar">
+                <span>9:41</span>
+                <span>5G 100%</span>
+              </div>
+
+              <div class="widgets-row">
+                <div class="widget widget-dark">
+                  <div style="color:#ff9f0a; font-weight:700;">☀️ Пятница</div>
+                  <div style="font-size:22px; font-weight:700;">18°</div>
+                  <div style="color:#8e8e93; font-size:9px;">Встреча в 15:00</div>
+                </div>
+                <div class="widget widget-blue">
+                  <div style="font-weight:600;">Мои задачи</div>
+                  <div style="font-size:20px; font-weight:800;">4 / 5</div>
+                  <div style="font-size:9px; opacity:0.8;">Почти готово</div>
+                </div>
+              </div>
+
+              <div class="widget-wide">
+                <div style="display:flex; justify-content:space-between; font-size:10px;">
+                  <span style="color:#8e8e93;">Аналитика</span>
+                  <span style="color:#30d158; font-weight:700;">+14.8%</span>
+                </div>
+                <div class="chart-line">
+                  <svg class="chart-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+                    <path d="M0,32 Q35,28 60,18 T120,20 T170,8 L200,4" fill="none" stroke="#30d158" stroke-width="2.5"/>
+                  </svg>
+                </div>
+                <div style="font-size:9px; color:#8e8e93;">Обновлено только что</div>
+              </div>
+
+              <div class="apps-grid">
+                <div class="app-item">
+                  <div class="app-icon" style="background:linear-gradient(#60a5fa,#2563eb); color:#fff;">🗺️</div>
+                  <span class="app-label">Карты</span>
+                </div>
+                <div class="app-item">
+                  <div class="app-icon" style="background:#fff;">📅</div>
+                  <span class="app-label">Календарь</span>
+                </div>
+                <div class="app-item">
+                  <div class="app-icon" style="background:linear-gradient(#f472b6,#db2777); color:#fff;">🎵</div>
+                  <span class="app-label">Музыка</span>
+                </div>
+                <div class="app-item">
+                  <div class="app-icon" style="background:#18181b; color:#fff;">⚙️</div>
+                  <span class="app-label">Настройки</span>
+                </div>
+                <div class="app-item">
+                  <div class="app-icon" style="background:#fef08a;">📒</div>
+                  <span class="app-label">Заметки</span>
+                </div>
+                <div class="app-item">
+                  <div class="app-icon" style="background:linear-gradient(#34d399,#059669); color:#fff;">💬</div>
+                  <span class="app-label">Сообщения</span>
+                </div>
+                <div class="app-item">
+                  <div class="app-icon" style="background:#fff;">📷</div>
+                  <span class="app-label">Фото</span>
+                </div>
+                <div class="app-item">
+                  <div class="app-icon" style="background:linear-gradient(#38bdf8,#0284c7); color:#fff;">🧭</div>
+                  <span class="app-label">Safari</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dock">
+              <div class="app-icon" style="background:#22c55e; color:#fff;">📞</div>
+              <div class="app-icon" style="background:#3b82f6; color:#fff;">✉️</div>
+              <div class="app-icon" style="background:#f59e0b; color:#fff;">🌐</div>
+              <div class="app-icon" style="background:#ec4899; color:#fff;">🎧</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="controls-wrapper">
+    <div class="controls-header">
+      <span>Tilt to explore</span>
+      <span class="angle-readout" id="angleValue">0°</span>
+    </div>
+
+    <div class="ruler-viewport" id="rulerViewport">
+      <div class="center-indicator"></div>
+      <div class="ruler-track" id="rulerTrack"></div>
+    </div>
+
+    <button class="reset-btn" id="resetBtn">Reset</button>
+  </section>
+
+  <script>
+    const iphone = document.getElementById('iphone');
+    const chassisLayers = document.getElementById('chassisLayers');
+    const screenContent = document.getElementById('screenContent');
+    const glare = document.getElementById('glare');
+    const rulerTrack = document.getElementById('rulerTrack');
+    const rulerViewport = document.getElementById('rulerViewport');
+    const stage = document.getElementById('stage');
+    const angleValue = document.getElementById('angleValue');
+    const resetBtn = document.getElementById('resetBtn');
+    const sensorBtn = document.getElementById('sensorBtn');
+    const sensorBtnText = document.getElementById('sensorBtnText');
+
+    // 1. Создаем 3D-слои металлической рамки корпуса (толщина телефона при повороте)
+    for (let z = -15; z <= 0; z += 1.5) {
+      const layer = document.createElement('div');
+      layer.className = 'chassis-layer';
+      layer.style.transform = `translateZ(${z}px)`;
+      chassisLayers.appendChild(layer);
+    }
+
+    // 2. Генерируем шкалу линейки от -80° до +80°
+    const PX_PER_DEGREE = 4.5; // Расстояние между градусами в пикселях
+    const MAX_ANGLE = 70;
+
+    for (let deg = -80; deg <= 80; deg += 2) {
+      const xPos = deg * PX_PER_DEGREE;
+      const isMajor = deg % 10 === 0;
+
+      const tick = document.createElement('div');
+      tick.className = `tick ${isMajor ? 'major' : 'minor'}`;
+      tick.style.left = `${xPos}px`;
+      rulerTrack.appendChild(tick);
+
+      if (isMajor) {
+        const label = document.createElement('div');
+        label.className = 'tick-label';
+        label.style.left = `${xPos}px`;
+        label.textContent = `${deg}°`;
+        rulerTrack.appendChild(label);
+      }
+    }
+
+    // 3. Состояние угла и плавная физика (интерполяция)
+    let targetAngle = 0;
+    let currentAngle = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startAngle = 0;
+    let sensorEnabled = false;
+    let baseGamma = null;
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function updateScene() {
+      // Плавное сглаживание движения
+      currentAngle += (targetAngle - currentAngle) * 0.14;
+
+      const rounded = Math.round(currentAngle);
+      angleValue.textContent = `${rounded}°`;
+
+      // Вращение 3D-модели телефона
+      iphone.style.transform = `rotateY(${currentAngle}deg)`;
+
+      // Сдвиг линейки
+      rulerTrack.style.transform = `translateX(${-currentAngle * PX_PER_DEGREE}px)`;
+
+      // Расчет эффекта размытия и затемнения (как на видео: чем сильнее угол, тем сильнее блюр)
+      const absAngle = Math.abs(currentAngle);
+      const normalized = Math.min(absAngle / 48, 1); // Пик эффекта около 48°
+      const blurPx = (normalized * normalized * 12).toFixed(2);
+      const brightness = (1 - normalized * 0.35).toFixed(2);
+
+      screenContent.style.filter = `blur(${blurPx}px) brightness(${brightness})`;
+      glare.style.opacity = (normalized * 0.85).toFixed(2);
+
+      requestAnimationFrame(updateScene);
+    }
+
+    requestAnimationFrame(updateScene);
+
+    // 4. Управление мышкой и свайпами (по линейке или по самому телефону)
+    function onPointerDown(e) {
+      isDragging = true;
+      startX = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
+      startAngle = targetAngle;
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      const clientX = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
+      const deltaX = clientX - startX;
+      targetAngle = clamp(startAngle - deltaX / PX_PER_DEGREE, -MAX_ANGLE, MAX_ANGLE);
+    }
+
+    function onPointerUp() {
+      isDragging = false;
+    }
+
+    [stage, rulerViewport].forEach(el => {
+      el.addEventListener('mousedown', onPointerDown);
+      el.addEventListener('touchstart', onPointerDown, { passive: true });
+    });
+
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('touchmove', onPointerMove, { passive: true });
+    window.addEventListener('mouseup', onPointerUp);
+    window.addEventListener('touchend', onPointerUp);
+
+    // Кнопка Reset
+    resetBtn.addEventListener('click', () => {
+      targetAngle = 0;
+      baseGamma = null; // Сбрасываем центр калибровки гироскопа
+    });
+
+    // 5. Подключение датчиков наклона телефона (DeviceOrientation API)
+    function handleOrientation(event) {
+      if (isDragging || event.gamma === null) return;
+
+      // Калибруем начальное положение телефона при первом чтении или после Reset
+      if (baseGamma === null) {
+        baseGamma = event.gamma;
+      }
+
+      const relativeGamma = event.gamma - baseGamma;
+      // Умножаем на 1.2 для более отзывчивого наклона
+      targetAngle = clamp(relativeGamma * 1.2, -MAX_ANGLE, MAX_ANGLE);
+    }
+
+    async function enableSensors() {
+      try {
+        // Для iOS 13+ Safari требуется явный запрос разрешения по клику
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== 'granted') {
+            alert('Доступ к датчикам наклона отклонен.');
+            return;
+          }
+        }
+
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        sensorEnabled = true;
+        baseGamma = null;
+        sensorBtn.classList.add('active');
+        sensorBtnText.textContent = 'Датчики активны (наклоняйте)';
+      } catch (err) {
+        console.error(err);
+        alert('Не удалось запросить датчики. Убедитесь, что сайт открыт по HTTPS.');
+      }
+    }
+
+    sensorBtn.addEventListener('click', () => {
+      if (!sensorEnabled) {
+        enableSensors();
+      } else {
+        baseGamma = null; // Повторное нажатие калибрует 0° под текущий наклон руки
+        targetAngle = 0;
+      }
+    });
+  </script>
+</body>
+</html>
