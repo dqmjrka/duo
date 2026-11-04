@@ -114,7 +114,7 @@
       will-change: transform;
     }
 
-    /* Слои корпуса для создания настоящего 3D-объема при повороте */
+    /* Слои корпуса для 3D-объема */
     .chassis-layer {
       position: absolute;
       inset: 0;
@@ -124,7 +124,6 @@
       box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
     }
 
-    /* Задняя крышка */
     .iphone-back {
       position: absolute;
       inset: 0;
@@ -134,7 +133,6 @@
       box-shadow: 0 30px 60px rgba(0, 0, 0, 0.75);
     }
 
-    /* Передняя панель */
     .iphone-front {
       position: absolute;
       inset: 0;
@@ -160,18 +158,17 @@
       padding: 12px 14px 14px;
     }
 
-    /* Контент экрана, который размывается при наклоне */
     .screen-content {
       width: 100%;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      will-change: filter, opacity;
+      will-change: filter;
       transition: filter 0.04s linear;
     }
 
-    /* Dynamic Island (не размывается, остается поверх экрана) */
+    /* Dynamic Island */
     .dynamic-island {
       position: absolute;
       top: 11px;
@@ -202,53 +199,63 @@
       font-size: 11px;
       font-weight: 600;
       padding: 2px 6px 0;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
-    /* Виджеты и иконки в стиле iOS со скриншота */
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Виджеты */
     .widgets-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     .widget {
-      height: 98px;
+      height: 96px;
       border-radius: 18px;
       padding: 10px;
       font-size: 10px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
 
-    .widget-dark {
-      background: rgba(20, 20, 25, 0.85);
-      color: #fff;
+    .widget-clock {
+      background: rgba(20, 20, 24, 0.82);
+      align-items: center;
+      justify-content: center;
     }
 
-    .widget-blue {
-      background: linear-gradient(145deg, #1e40af, #3b82f6);
+    .widget-weather {
+      background: linear-gradient(160deg, #1e3a8a 0%, #2563eb 100%);
       color: #fff;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.2);
     }
 
     .widget-wide {
       margin-top: 10px;
-      height: 96px;
+      height: 94px;
       border-radius: 18px;
       background: rgba(18, 22, 28, 0.88);
       padding: 10px 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.08);
     }
 
     .chart-line {
       width: 100%;
-      height: 36px;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+      height: 38px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
       position: relative;
       overflow: hidden;
     }
@@ -258,6 +265,7 @@
       height: 100%;
     }
 
+    /* Сетка приложений */
     .apps-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -277,17 +285,23 @@
       width: 42px;
       height: 42px;
       border-radius: 11px;
-      background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-icon svg {
+      width: 24px;
+      height: 24px;
     }
 
     .app-label {
       font-size: 8.5px;
-      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.92);
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     }
 
@@ -303,7 +317,7 @@
       padding: 0 8px;
     }
 
-    /* Эффект блика и затемнения приватного стекла при наклоне */
+    /* Блик защитного стекла */
     .privacy-glare {
       position: absolute;
       inset: 0;
@@ -354,7 +368,6 @@
       -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
     }
 
-    /* Красный центральный указатель */
     .center-indicator {
       position: absolute;
       left: 50%;
@@ -441,7 +454,6 @@
   <main class="stage" id="stage">
     <div class="iphone-3d" id="iphone">
       <div class="iphone-back"></div>
-      <!-- Слои металлической рамки создаются скриптом для плавного 3D-борта -->
       <div id="chassisLayers"></div>
 
       <div class="iphone-front">
@@ -454,78 +466,218 @@
 
           <div class="screen-content" id="screenContent">
             <div>
+              <!-- Статус-бар с SVG иконками -->
               <div class="status-bar">
                 <span>9:41</span>
-                <span>5G 100%</span>
+                <div class="status-icons">
+                  <!-- Сотовая связь -->
+                  <svg width="13" height="9" viewBox="0 0 13 9" fill="#fff">
+                    <rect x="0" y="6" width="2" height="3" rx="0.6"/>
+                    <rect x="3.5" y="4.2" width="2" height="4.8" rx="0.6"/>
+                    <rect x="7" y="2.2" width="2" height="6.8" rx="0.6"/>
+                    <rect x="10.5" y="0" width="2" height="9" rx="0.6"/>
+                  </svg>
+                  <!-- Wi-Fi -->
+                  <svg width="12" height="9" viewBox="0 0 16 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round">
+                    <path d="M1.5 4.5C5.2 1.2 10.8 1.2 14.5 4.5"/>
+                    <path d="M4.2 7.3C6.4 5.3 9.6 5.3 11.8 7.3"/>
+                    <circle cx="8" cy="10.2" r="1.2" fill="#fff" stroke="none"/>
+                  </svg>
+                  <!-- Батарея -->
+                  <svg width="18" height="9" viewBox="0 0 22 11" fill="none">
+                    <rect x="0.5" y="0.5" width="18" height="10" rx="2.5" stroke="#fff" stroke-opacity="0.6"/>
+                    <rect x="2" y="2" width="15" height="7" rx="1.2" fill="#fff"/>
+                    <path d="M20 3.5V7.5C20.8 7.2 21.3 6.4 21.3 5.5C21.3 4.6 20.8 3.8 20 3.5Z" fill="#fff" fill-opacity="0.6"/>
+                  </svg>
+                </div>
               </div>
 
+              <!-- Верхние виджеты -->
               <div class="widgets-row">
-                <div class="widget widget-dark">
-                  <div style="color:#ff9f0a; font-weight:700;">☀️ Пятница</div>
-                  <div style="font-size:22px; font-weight:700;">18°</div>
-                  <div style="color:#8e8e93; font-size:9px;">Встреча в 15:00</div>
+                <!-- Виджет аналоговых часов (как на видео) -->
+                <div class="widget widget-clock">
+                  <svg width="74" height="74" viewBox="0 0 74 74">
+                    <circle cx="37" cy="37" r="35" fill="#fff"/>
+                    <!-- Деления циферблата -->
+                    <g stroke="#1c1c1e" stroke-width="1.5" stroke-linecap="round">
+                      <line x1="37" y1="5" x2="37" y2="9"/>
+                      <line x1="37" y1="65" x2="37" y2="69"/>
+                      <line x1="5" y1="37" x2="9" y2="37"/>
+                      <line x1="65" y1="37" x2="69" y2="37"/>
+                    </g>
+                    <!-- Часовая и минутная стрелки -->
+                    <line x1="37" y1="37" x2="26" y2="25" stroke="#1c1c1e" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="37" y1="37" x2="54" y2="23" stroke="#1c1c1e" stroke-width="2.2" stroke-linecap="round"/>
+                    <!-- Секундная стрелка -->
+                    <line x1="37" y1="43" x2="37" y2="10" stroke="#ff9500" stroke-width="1.2" stroke-linecap="round"/>
+                    <circle cx="37" cy="37" r="2.5" fill="#ff9500"/>
+                  </svg>
                 </div>
-                <div class="widget widget-blue">
-                  <div style="font-weight:600;">Мои задачи</div>
-                  <div style="font-size:20px; font-weight:800;">4 / 5</div>
-                  <div style="font-size:9px; opacity:0.8;">Почти готово</div>
+
+                <!-- Виджет погоды с SVG иконкой -->
+                <div class="widget widget-weather">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:600; font-size:10px;">Берлин</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <circle cx="10" cy="10" r="5" fill="#fbbf24"/>
+                      <path d="M10 18H17.5C19.7 18 21.5 16.2 21.5 14C21.5 11.9 19.9 10.2 17.9 10C17.2 7.2 14.6 5 11.5 5C7.9 5 5 7.9 5 11.5C5 11.7 5 11.9 5.1 12.1C3.6 12.6 2.5 14 2.5 15.7C2.5 17.8 4.2 18 6.5 18H10Z" fill="#fff" fill-opacity="0.92"/>
+                    </svg>
+                  </div>
+                  <div style="font-size:23px; font-weight:700; letter-spacing:-0.5px;">18°</div>
+                  <div style="font-size:8.5px; opacity:0.85;">Переменная облачность</div>
                 </div>
               </div>
 
+              <!-- Широкий виджет аналитики -->
               <div class="widget-wide">
-                <div style="display:flex; justify-content:space-between; font-size:10px;">
-                  <span style="color:#8e8e93;">Аналитика</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px;">
+                  <span style="color:#8e8e93; font-weight:500;">Активность рынка</span>
                   <span style="color:#30d158; font-weight:700;">+14.8%</span>
                 </div>
                 <div class="chart-line">
                   <svg class="chart-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
-                    <path d="M0,32 Q35,28 60,18 T120,20 T170,8 L200,4" fill="none" stroke="#30d158" stroke-width="2.5"/>
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#30d158" stop-opacity="0.35"/>
+                        <stop offset="100%" stop-color="#30d158" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,32 Q35,28 60,18 T120,20 T170,8 L200,4 L200,40 L0,40 Z" fill="url(#chartGrad)"/>
+                    <path d="M0,32 Q35,28 60,18 T120,20 T170,8 L200,4" fill="none" stroke="#30d158" stroke-width="2.2" stroke-linecap="round"/>
                   </svg>
                 </div>
-                <div style="font-size:9px; color:#8e8e93;">Обновлено только что</div>
+                <div style="font-size:8.5px; color:#8e8e93;">Обновлено только что</div>
               </div>
 
+              <!-- Иконки приложений (чистый SVG) -->
               <div class="apps-grid">
+                <!-- Навигатор / Карты -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(#60a5fa,#2563eb); color:#fff;">🗺️</div>
+                  <div class="app-icon" style="background:linear-gradient(145deg, #38bdf8, #2563eb);">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L19 21L12 17L5 21L12 2Z" fill="#fff"/>
+                    </svg>
+                  </div>
                   <span class="app-label">Карты</span>
                 </div>
+
+                <!-- Календарь -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:#fff;">📅</div>
+                  <div class="app-icon" style="background:#ffffff; flex-direction:column;">
+                    <span style="font-size:7px; font-weight:700; color:#ff3b30; text-transform:uppercase; letter-spacing:0.4px; margin-top:2px;">СР</span>
+                    <span style="font-size:19px; font-weight:300; color:#1c1c1e; line-height:1;">4</span>
+                  </div>
                   <span class="app-label">Календарь</span>
                 </div>
+
+                <!-- Музыка -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(#f472b6,#db2777); color:#fff;">🎵</div>
+                  <div class="app-icon" style="background:linear-gradient(145deg, #ff5e7e, #ff2d55);">
+                    <svg viewBox="0 0 24 24" fill="#fff">
+                      <path d="M9 17.5C9 19.1569 7.65685 20.5 6 20.5C4.34315 20.5 3 19.1569 3 17.5C3 15.8431 4.34315 14.5 6 14.5C7.65685 14.5 9 15.8431 9 17.5ZM20 15.5C20 17.1569 18.6569 18.5 17 18.5C15.3431 18.5 14 17.1569 14 15.5C14 13.8431 15.3431 12.5 17 12.5C18.6569 12.5 20 13.8431 20 15.5Z"/>
+                      <path d="M8 17.5V6.5L19 4.5V15.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                  </div>
                   <span class="app-label">Музыка</span>
                 </div>
+
+                <!-- Настройки -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:#18181b; color:#fff;">⚙️</div>
+                  <div class="app-icon" style="background:linear-gradient(145deg, #8e8e93, #3a3a3c);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="3.2"/>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.77 1.05 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                  </div>
                   <span class="app-label">Настройки</span>
                 </div>
+
+                <!-- Заметки -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:#fef08a;">📒</div>
+                  <div class="app-icon" style="background:#ffffff;">
+                    <svg viewBox="0 0 42 42" style="width:100%; height:100%;">
+                      <rect x="0" y="0" width="42" height="12" fill="#ffcc00"/>
+                      <line x1="6" y1="20" x2="36" y2="20" stroke="#d1d1d6" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="6" y1="27" x2="36" y2="27" stroke="#d1d1d6" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="6" y1="34" x2="24" y2="34" stroke="#d1d1d6" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </div>
                   <span class="app-label">Заметки</span>
                 </div>
+
+                <!-- Сообщения -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(#34d399,#059669); color:#fff;">💬</div>
+                  <div class="app-icon" style="background:linear-gradient(180deg, #52e575, #28cd41);">
+                    <svg viewBox="0 0 24 24" fill="#fff">
+                      <path d="M12 4C6.48 4 2 7.58 2 12C2 14.13 3.05 16.07 4.75 17.5C4.5 18.8 3.6 20.1 2.8 20.8C2.6 21 2.75 21.3 3 21.25C4.9 21 6.7 20.1 7.9 19.3C9.18 19.75 10.56 20 12 20C17.52 20 22 16.42 22 12C22 7.58 17.52 4 12 4Z"/>
+                    </svg>
+                  </div>
                   <span class="app-label">Сообщения</span>
                 </div>
+
+                <!-- Фото (цветок iOS) -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:#fff;">📷</div>
+                  <div class="app-icon" style="background:#ffffff;">
+                    <svg viewBox="0 0 32 32" style="width:28px; height:28px;">
+                      <g opacity="0.85">
+                        <rect x="13" y="3" width="6" height="11" rx="3" fill="#ff9500"/>
+                        <rect x="13" y="18" width="6" height="11" rx="3" fill="#007aff"/>
+                        <rect x="3" y="13" width="11" height="6" rx="3" fill="#ff2d55"/>
+                        <rect x="18" y="13" width="11" height="6" rx="3" fill="#4cd964"/>
+                        <rect x="13" y="3" width="6" height="11" rx="3" fill="#ffcc00" transform="rotate(45 16 16)"/>
+                        <rect x="13" y="18" width="6" height="11" rx="3" fill="#5856d6" transform="rotate(45 16 16)"/>
+                        <rect x="3" y="13" width="11" height="6" rx="3" fill="#ff3b30" transform="rotate(45 16 16)"/>
+                        <rect x="18" y="13" width="11" height="6" rx="3" fill="#34c759" transform="rotate(45 16 16)"/>
+                      </g>
+                    </svg>
+                  </div>
                   <span class="app-label">Фото</span>
                 </div>
+
+                <!-- Safari -->
                 <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(#38bdf8,#0284c7); color:#fff;">🧭</div>
+                  <div class="app-icon" style="background:linear-gradient(180deg, #38bdf8, #0284c7);">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="9.5" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+                      <polygon points="12,12 16.5,7.5 13.5,13.5" fill="#ff3b30"/>
+                      <polygon points="12,12 7.5,16.5 10.5,10.5" fill="#ffffff"/>
+                    </svg>
+                  </div>
                   <span class="app-label">Safari</span>
                 </div>
               </div>
             </div>
 
+            <!-- Нижний док с SVG иконками -->
             <div class="dock">
-              <div class="app-icon" style="background:#22c55e; color:#fff;">📞</div>
-              <div class="app-icon" style="background:#3b82f6; color:#fff;">✉️</div>
-              <div class="app-icon" style="background:#f59e0b; color:#fff;">🌐</div>
-              <div class="app-icon" style="background:#ec4899; color:#fff;">🎧</div>
+              <!-- Телефон -->
+              <div class="app-icon" style="background:linear-gradient(180deg, #52e575, #28cd41);">
+                <svg viewBox="0 0 24 24" fill="#fff">
+                  <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.57 3.58a1 1 0 0 1-.25 1.01l-2.2 2.2z"/>
+                </svg>
+              </div>
+              <!-- Почта -->
+              <div class="app-icon" style="background:linear-gradient(180deg, #38bdf8, #2563eb);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="14" rx="2"/>
+                  <polyline points="3,7 12,13 21,7"/>
+                </svg>
+              </div>
+              <!-- Файлы -->
+              <div class="app-icon" style="background:#ffffff;">
+                <svg viewBox="0 0 24 24" fill="#007aff">
+                  <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                </svg>
+              </div>
+              <!-- Подкасты / Медиа -->
+              <div class="app-icon" style="background:linear-gradient(180deg, #c084fc, #7e22ce);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+                  <circle cx="12" cy="11" r="2" fill="#fff"/>
+                  <path d="M8.5 14.5a5 5 0 1 1 7 0"/>
+                  <path d="M5.5 17.5a9 9 0 1 1 13 0"/>
+                  <line x1="12" y1="15" x2="12" y2="20" stroke-width="2.5"/>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -560,7 +712,7 @@
     const sensorBtn = document.getElementById('sensorBtn');
     const sensorBtnText = document.getElementById('sensorBtnText');
 
-    // 1. Создаем 3D-слои металлической рамки корпуса (толщина телефона при повороте)
+    // 1. Создаем 3D-слои металлической рамки корпуса
     for (let z = -15; z <= 0; z += 1.5) {
       const layer = document.createElement('div');
       layer.className = 'chassis-layer';
@@ -569,7 +721,7 @@
     }
 
     // 2. Генерируем шкалу линейки от -80° до +80°
-    const PX_PER_DEGREE = 4.5; // Расстояние между градусами в пикселях
+    const PX_PER_DEGREE = 4.5;
     const MAX_ANGLE = 70;
 
     for (let deg = -80; deg <= 80; deg += 2) {
@@ -590,7 +742,7 @@
       }
     }
 
-    // 3. Состояние угла и плавная физика (интерполяция)
+    // 3. Состояние угла и плавная физика
     let targetAngle = 0;
     let currentAngle = 0;
     let isDragging = false;
@@ -604,21 +756,16 @@
     }
 
     function updateScene() {
-      // Плавное сглаживание движения
       currentAngle += (targetAngle - currentAngle) * 0.14;
 
       const rounded = Math.round(currentAngle);
       angleValue.textContent = `${rounded}°`;
 
-      // Вращение 3D-модели телефона
       iphone.style.transform = `rotateY(${currentAngle}deg)`;
-
-      // Сдвиг линейки
       rulerTrack.style.transform = `translateX(${-currentAngle * PX_PER_DEGREE}px)`;
 
-      // Расчет эффекта размытия и затемнения (как на видео: чем сильнее угол, тем сильнее блюр)
       const absAngle = Math.abs(currentAngle);
-      const normalized = Math.min(absAngle / 48, 1); // Пик эффекта около 48°
+      const normalized = Math.min(absAngle / 48, 1);
       const blurPx = (normalized * normalized * 12).toFixed(2);
       const brightness = (1 - normalized * 0.35).toFixed(2);
 
@@ -630,7 +777,7 @@
 
     requestAnimationFrame(updateScene);
 
-    // 4. Управление мышкой и свайпами (по линейке или по самому телефону)
+    // 4. Управление мышкой и свайпами
     function onPointerDown(e) {
       isDragging = true;
       startX = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
@@ -645,7 +792,7 @@
     }
 
     function onPointerUp() {
-      isDragging = false;
+<!false;/html> = false;
     }
 
     [stage, rulerViewport].forEach(el => {
@@ -658,29 +805,25 @@
     window.addEventListener('mouseup', onPointerUp);
     window.addEventListener('touchend', onPointerUp);
 
-    // Кнопка Reset
     resetBtn.addEventListener('click', () => {
       targetAngle = 0;
-      baseGamma = null; // Сбрасываем центр калибровки гироскопа
+      baseGamma = null;
     });
 
     // 5. Подключение датчиков наклона телефона (DeviceOrientation API)
     function handleOrientation(event) {
       if (isDragging || event.gamma === null) return;
 
-      // Калибруем начальное положение телефона при первом чтении или после Reset
       if (baseGamma === null) {
         baseGamma = event.gamma;
       }
 
       const relativeGamma = event.gamma - baseGamma;
-      // Умножаем на 1.2 для более отзывчивого наклона
       targetAngle = clamp(relativeGamma * 1.2, -MAX_ANGLE, MAX_ANGLE);
     }
 
     async function enableSensors() {
       try {
-        // Для iOS 13+ Safari требуется явный запрос разрешения по клику
         if (typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function') {
           const permission = await DeviceOrientationEvent.requestPermission();
@@ -705,7 +848,7 @@
       if (!sensorEnabled) {
         enableSensors();
       } else {
-        baseGamma = null; // Повторное нажатие калибрует 0° под текущий наклон руки
+        baseGamma = null;
         targetAngle = 0;
       }
     });
