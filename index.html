@@ -2,15 +2,12 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Solo Tilt — Interactive 3D Phone Effect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Solo Tilt — Fullscreen iOS Privacy Effect</title>
   <style>
     :root {
-      --bg-center: #262626;
-      --bg-edge: #080808;
       --accent-red: #ff3b30;
-      --text-main: #ffffff;
-      --text-muted: #8e8e93;
+      --badge-red: #ff453a;
     }
 
     * {
@@ -19,838 +16,847 @@
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
 
-    body {
-      background: radial-gradient(circle at 50% 42%, var(--bg-center) 0%, #121212 55%, var(--bg-edge) 100%);
-      color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    html, body {
+      width: 100%;
       height: 100dvh;
+      overflow: hidden;
+      background: #0b192c;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      color: #fff;
+    }
+
+    /* Оверлей для мгновенного запроса датчиков по первому тапу (требование iOS) */
+    .sensor-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(10, 14, 24, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      transition: opacity 0.25s ease;
+      cursor: pointer;
+    }
+
+    .sensor-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .sensor-card {
+      background: rgba(30, 34, 45, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 26px;
+      padding: 26px 22px;
+      max-width: 310px;
+      width: 100%;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sensor-icon-wrap {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #2563eb, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .sensor-card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .sensor-card p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.4;
+    }
+
+    .sensor-allow-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 14px;
+      border: none;
+      background: #fff;
+      color: #000;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .sensor-status-msg {
+      font-size: 11px;
+      color: #fbbf24;
+      margin-top: 4px;
+      display: none;
+    }
+
+    /* Плавающая мини-плашка градуса наклона в углу */
+    .tilt-pill {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+    }
+
+    /* Полноэкранный контейнер (на телефоне сразу во весь экран) */
+    .viewport-wrapper {
+      width: 100%;
+      height: 100dvh;
+      perspective: 1100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+
+    .ios-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      /* Обои в стиле iOS со скриншота */
+      background:
+        radial-gradient(circle at 20% 22%, #29528a 0%, transparent 55%),
+        radial-gradient(circle at 80% 70%, #83c5be 0%, transparent 60%),
+        linear-gradient(160deg, #1b3b6f 0%, #2c6e91 48%, #75b8c8 85%, #a8dadc 100%);
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      align-items: center;
-    }
-
-    /* Верхняя панель */
-    header {
-      width: 100%;
-      padding: 24px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 20;
-    }
-
-    .logo {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.4px;
-      color: #fff;
-      text-decoration: none;
-    }
-
-    .sensor-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .sensor-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .sensor-btn.active {
-      border-color: #30d158;
-      color: #30d158;
-      background: rgba(48, 209, 88, 0.12);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #8e8e93;
-    }
-
-    .sensor-btn.active .status-dot {
-      background: #30d158;
-      box-shadow: 0 0 8px #30d158;
-    }
-
-    /* 3D Сцена и iPhone */
-    .stage {
-      perspective: 1100px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex: 1;
-      width: 100%;
-      cursor: grab;
-      touch-action: none;
-    }
-
-    .stage:active {
-      cursor: grabbing;
-    }
-
-    .iphone-3d {
-      position: relative;
-      width: 250px;
-      height: 515px;
+      padding: 14px 18px 18px;
       transform-style: preserve-3d;
       will-change: transform;
     }
 
-    /* Слои корпуса для 3D-объема */
-    .chassis-layer {
-      position: absolute;
-      inset: 0;
-      border-radius: 44px;
-      background: linear-gradient(135deg, #d4d4d8 0%, #71717a 45%, #e4e4e7 75%, #52525b 100%);
-      pointer-events: none;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+    /* На больших экранах ПК аккуратно центрируем как экран iPhone */
+    @media (min-width: 520px) {
+      body {
+        background: radial-gradient(circle at 50% 45%, #262626 0%, #0a0a0a 100%);
+      }
+      .ios-screen {
+        width: 390px;
+        height: 820px;
+        max-height: 92dvh;
+        border-radius: 48px;
+        box-shadow: 0 0 0 10px #18181b, 0 0 0 12px #71717a, 0 30px 70px rgba(0,0,0,0.8);
+      }
     }
 
-    .iphone-back {
-      position: absolute;
-      inset: 0;
-      border-radius: 44px;
-      background: #27272a;
-      transform: translateZ(-16px);
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.75);
-    }
-
-    .iphone-front {
-      position: absolute;
-      inset: 0;
-      border-radius: 44px;
-      background: #000;
-      padding: 9px;
-      transform: translateZ(1px);
-      box-shadow: inset 0 0 0 2px #d4d4d8, inset 0 0 0 4px #18181b;
-      overflow: hidden;
-    }
-
-    /* Экран iOS */
-    .screen {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      border-radius: 36px;
-      overflow: hidden;
-      background: linear-gradient(165deg, #0b243b 0%, #1d5a6c 38%, #63b4b8 72%, #d8a47f 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 12px 14px 14px;
-    }
-
-    .screen-content {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      will-change: filter;
-      transition: filter 0.04s linear;
-    }
-
-    /* Dynamic Island */
-    .dynamic-island {
-      position: absolute;
-      top: 11px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 76px;
-      height: 22px;
-      background: #000;
-      border-radius: 20px;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 7px;
-    }
-
-    .camera-lens {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #1e3a8a 20%, #090d16 70%);
-    }
-
-    .status-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 6px 0;
-      margin-bottom: 12px;
-    }
-
-    .status-icons {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* Виджеты */
-    .widgets-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 8px;
-    }
-
-    .widget {
-      height: 96px;
-      border-radius: 18px;
-      padding: 10px;
-      font-size: 10px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    .widget-clock {
-      background: rgba(20, 20, 24, 0.82);
-      align-items: center;
-      justify-content: center;
-    }
-
-    .widget-weather {
-      background: linear-gradient(160deg, #1e3a8a 0%, #2563eb 100%);
-      color: #fff;
-      box-shadow: inset 0 1px 1px rgba(255,255,255,0.2);
-    }
-
-    .widget-wide {
-      margin-top: 10px;
-      height: 94px;
-      border-radius: 18px;
-      background: rgba(18, 22, 28, 0.88);
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: inset 0 1px 1px rgba(255,255,255,0.08);
-    }
-
-    .chart-line {
-      width: 100%;
-      height: 38px;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .chart-svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Сетка приложений */
-    .apps-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 11px 10px;
-      margin-top: 12px;
-      margin-bottom: auto;
-    }
-
-    .app-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .app-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .app-icon svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .app-label {
-      font-size: 8.5px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.92);
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-
-    .dock {
-      height: 62px;
-      background: rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 24px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: 0 8px;
-    }
-
-    /* Блик защитного стекла */
+    /* Слой приватного затемнения/блика при наклоне */
     .privacy-glare {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      background: linear-gradient(105deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.18) 50%, rgba(0,0,0,0.45) 85%);
+      background: linear-gradient(105deg, rgba(255,255,255,0) 15%, rgba(255,255,255,0.16) 48%, rgba(0,0,0,0.65) 90%);
       opacity: 0;
-      z-index: 8;
-      border-radius: 36px;
+      z-index: 40;
     }
 
-    /* Нижняя панель с линейкой градусов */
-    .controls-wrapper {
+    /* Контент, который размывается при наклоне телефона */
+    .blur-target {
       width: 100%;
-      max-width: 340px;
-      padding-bottom: 28px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      will-change: filter, transform;
+    }
+
+    /* Основная сетка 4 колонки как в iOS */
+    .home-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: minmax(68px, 1fr);
+      gap: 14px 14px;
+      width: 100%;
+      max-width: 410px;
+      margin: 22px auto 0;
+      flex: 1;
+      align-content: space-between;
+      padding-bottom: 14px;
+    }
+
+    /* Иконка 1x1 */
+    .icon-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 22%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+      align-self: center;
+      justify-self: center;
+      max-width: 76px;
+    }
+
+    /* Красный бейдж уведомлений ("0" или "new") */
+    .badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: var(--badge-red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      z-index: 5;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      line-height: 1.2;
+    }
+
+    /* Большой квадратный виджет 2x2 */
+    .widget-2x2 {
+      grid-column: span 2;
+      grid-row: span 2;
+      border-radius: 26px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Широкий виджет 3x1 (IPHONE DUO: SUCCESS OR FAILURE?) */
+    .widget-3x1 {
+      grid-column: span 3;
+      grid-row: span 1;
+      background: #14191f;
+      border-radius: 22px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.28);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* 1. Часы (верхний левый угол) */
+    .icon-clock {
+      background: #1c1c1e;
+      padding: 6px;
+    }
+
+    /* 2. Терминал >_ */
+    .icon-terminal {
+      background: #ffffff;
+      padding: 10px;
+    }
+
+    .terminal-inner {
+      width: 100%;
+      height: 100%;
+      background: #1c1c1e;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      margin-top: 8px;
+      height: 75%;
+    }
+
+    /* 3. Виджет музыки La La Land (справа вверху 2x2) */
+    .widget-music {
+      background: linear-gradient(145deg, #101f42 0%, #091126 100%);
+    }
+
+    .music-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .album-cover {
+      width: 72px;
+      height: 72px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #1e1b4b 0%, #4c1d95 55%, #0f172a 100%);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      padding: 5px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      z-index: 20;
     }
 
-    .controls-header {
-      width: 100%;
+    .album-title {
+      font-size: 6.5px;
+      letter-spacing: 0.8px;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .music-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .play-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* 4. Виджет Live "2 people playing now" (слева 2x2) */
+    .widget-live {
+      background: #112a30;
+    }
+
+    .live-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
-      padding: 0 8px;
       font-size: 12px;
-      color: var(--text-muted);
+      color: rgba(255,255,255,0.85);
     }
 
-    .angle-readout {
-      color: #fff;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      font-size: 13px;
+    .live-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      margin-right: 5px;
+      box-shadow: 0 0 6px #4ade80;
     }
 
-    .ruler-viewport {
-      position: relative;
-      width: 100%;
-      height: 54px;
-      overflow: hidden;
-      cursor: ew-resize;
-      touch-action: none;
-      mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+    .live-number {
+      font-size: 40px;
+      font-weight: 700;
+      color: #6ee7b7;
+      line-height: 1;
+      margin-top: 2px;
     }
 
-    .center-indicator {
-      position: absolute;
-      left: 50%;
-      top: 16px;
-      bottom: 6px;
-      width: 2px;
-      background: var(--accent-red);
-      transform: translateX(-50%);
-      z-index: 5;
-      border-radius: 2px;
-      box-shadow: 0 0 8px rgba(255, 59, 48, 0.7);
+    /* Папка соцсетей 2x2 внутри иконки */
+    .social-folder {
+      background: rgba(255, 255, 255, 0.78);
+      padding: 9px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 6px;
     }
 
-    .ruler-track {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      height: 100%;
+    .mini-social {
+      border-radius: 7px;
+      background: #000;
       display: flex;
-      align-items: flex-end;
-      will-change: transform;
-    }
-
-    .tick {
-      position: absolute;
-      bottom: 10px;
-      width: 1px;
-      background: rgba(255, 255, 255, 0.35);
-      transform: translateX(-50%);
-    }
-
-    .tick.minor {
-      height: 8px;
-    }
-
-    .tick.major {
-      height: 14px;
-      width: 1.5px;
-      background: rgba(255, 255, 255, 0.85);
-    }
-
-    .tick-label {
-      position: absolute;
-      bottom: 30px;
-      transform: translateX(-50%);
-      font-size: 10px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.65);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .reset-btn {
-      margin-top: 6px;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 11px;
-      cursor: pointer;
-      padding: 4px 10px;
-      transition: color 0.2s;
-    }
-
-    .reset-btn:hover {
+      align-items: center;
+      justify-content: center;
       color: #fff;
+      font-size: 11px;
+      font-weight: 800;
     }
 
-    @media (max-height: 700px) {
-      .iphone-3d {
-        transform: scale(0.85);
-      }
+    /* Сетка точек в виджете IPHONE DUO */
+    .matrix-bar {
+      flex: 1;
+      margin: 4px 0;
+      background-image: radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px);
+      background-size: 6px 6px;
+      border-radius: 4px;
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      padding: 2px;
+    }
+
+    .matrix-left {
+      width: 8px;
+      background: repeating-linear-gradient(to bottom, #4ade80 0px, #4ade80 3px, transparent 3px, transparent 5px);
+    }
+
+    .matrix-right {
+      width: 8px;
+      background: repeating-linear-gradient(to bottom, #f472b6 0px, #f472b6 3px, transparent 3px, transparent 5px);
+    }
+
+    /* Нижний док iOS */
+    .ios-dock {
+      width: 100%;
+      max-width: 410px;
+      margin: 0 auto;
+      padding: 13px 16px;
+      border-radius: 34px;
+      background: rgba(255, 255, 255, 0.28);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      align-items: center;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <a href="#" class="logo">solotilt.com</a>
-    <button id="sensorBtn" class="sensor-btn">
-      <span class="status-dot"></span>
-      <span id="sensorBtnText">Включить датчики наклона</span>
-    </button>
-  </header>
+  <!-- Оверлей: на iPhone разрешение на гироскоп срабатывает ТОЛЬКО от клика пользователя -->
+  <div class="sensor-overlay" id="sensorOverlay">
+    <div class="sensor-card">
+      <div class="sensor-icon-wrap">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="3"/>
+          <line x1="12" y1="18" x2="12.01" y2="18"/>
+        </svg>
+      </div>
+      <h2>Включить эффект наклона</h2>
+      <p>Нажмите в любом месте экрана, чтобы разрешить доступ к датчикам наклона телефона.</p>
+      <button class="sensor-allow-btn" id="allowBtn">Разрешить датчики</button>
+      <div class="sensor-status-msg" id="sensorStatusMsg"></div>
+    </div>
+  </div>
 
-  <main class="stage" id="stage">
-    <div class="iphone-3d" id="iphone">
-      <div class="iphone-back"></div>
-      <div id="chassisLayers"></div>
+  <!-- Индикатор текущего угла (нажатие по нему сбрасывает калибровку 0°) -->
+  <div class="tilt-pill" id="tiltPill" title="Нажмите для сброса 0°">Наклон: 0° (Сброс)</div>
 
-      <div class="iphone-front">
-        <div class="screen">
-          <div class="dynamic-island">
-            <div class="camera-lens"></div>
+  <div class="viewport-wrapper" id="stage">
+    <div class="ios-screen" id="iosScreen">
+      <div class="privacy-glare" id="glare"></div>
+
+      <div class="blur-target" id="blurTarget">
+        <div class="home-grid">
+
+          <!-- РЯД 1-2: Часы, Терминал, Заметка, Файл + Виджет Музыки 2x2 -->
+          <!-- 1. Часы -->
+          <div class="icon-box icon-clock">
+            <svg viewBox="0 0 74 74" style="width:100%; height:100%;">
+              <circle cx="37" cy="37" r="35" fill="#fff"/>
+              <g stroke="#1c1c1e" stroke-width="1.8" stroke-linecap="round">
+                <line x1="37" y1="5" x2="37" y2="10"/><line x1="37" y1="64" x2="37" y2="69"/>
+                <line x1="5" y1="37" x2="10" y2="37"/><line x1="64" y1="37" x2="69" y2="37"/>
+                <line x1="53" y1="9" x2="50" y2="14"/><line x1="65" y1="21" x2="60" y2="24"/>
+                <line x1="65" y1="53" x2="60" y2="50"/><line x1="53" y1="65" x2="50" y2="60"/>
+                <line x1="21" y1="65" x2="24" y2="60"/><line x1="9" y1="53" x2="14" y2="50"/>
+                <line x1="9" y1="21" x2="14" y2="24"/><line x1="21" y1="9" x2="24" y2="14"/>
+              </g>
+              <line x1="37" y1="37" x2="22" y2="45" stroke="#1c1c1e" stroke-width="3.2" stroke-linecap="round"/>
+              <line x1="37" y1="37" x2="10" y2="35" stroke="#1c1c1e" stroke-width="2.4" stroke-linecap="round"/>
+              <line x1="37" y1="44" x2="37" y2="8" stroke="#ff9500" stroke-width="1.4" stroke-linecap="round"/>
+              <circle cx="37" cy="37" r="2.6" fill="#ff9500"/>
+            </svg>
           </div>
 
-          <div class="privacy-glare" id="glare"></div>
+          <!-- 2. Терминал >_ -->
+          <div class="icon-box icon-terminal">
+            <div class="terminal-inner">
+              <span style="font-family:monospace; font-weight:800; font-size:15px; color:#fff;">&gt;_</span>
+              <span style="width:9px; height:9px; border-radius:50%; background:#30d158;"></span>
+            </div>
+          </div>
 
-          <div class="screen-content" id="screenContent">
+          <!-- 3. Музыкальный виджет 2x2 (справа) -->
+          <div class="widget-2x2 widget-music">
+            <div class="music-top">
+              <div class="album-cover">
+                <span class="album-title">LA LA LAND</span>
+                <svg viewBox="0 0 60 40" style="width:100%; height:100%; margin-top:4px;">
+                  <line x1="48" y1="6" x2="48" y2="34" stroke="#e2e8f0" stroke-width="1.5"/>
+                  <circle cx="48" cy="6" r="3" fill="#fef08a"/>
+                  <circle cx="22" cy="24" r="3" fill="#facc15"/>
+                  <path d="M18 34 L22 25 L26 34 Z" fill="#facc15"/>
+                </svg>
+              </div>
+              <!-- Иконка Spotify -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.59 14.42c-.18.3-.56.39-.86.21-2.35-1.44-5.31-1.76-8.8-.96-.33.08-.67-.13-.75-.47-.08-.33.13-.67.47-.75 3.82-.87 7.09-.5 9.73 1.11.3.18.39.56.21.86zm1.23-2.73c-.23.37-.71.49-1.08.26-2.69-1.65-6.79-2.13-9.97-1.16-.41.13-.85-.11-.98-.52-.13-.41.11-.85.52-.98 3.63-1.1 8.15-.57 11.25 1.33.37.23.49.71.26 1.07zm.11-2.85c-3.22-1.91-8.54-2.09-11.62-1.15-.49.15-1.01-.13-1.16-.62-.15-.49.13-1.01.62-1.16 3.53-1.07 9.41-.86 13.11 1.33.44.26.59.83.33 1.27-.26.44-.83.59-1.28.33z"/>
+              </svg>
+            </div>
+            <!-- Декоративная стрелка -->
+            <svg width="28" height="36" viewBox="0 0 30 40" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.6" stroke-linecap="round" style="position:absolute; right:18px; top:38px;">
+              <path d="M5 6 C25 6, 25 22, 12 20 C4 18, 18 28, 16 36"/>
+              <polyline points="12,33 16,37 20,33"/>
+            </svg>
+            <div class="music-bottom">
+              <div style="overflow:hidden;">
+                <div style="font-size:10px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">City Of Stars - From</div>
+                <div style="font-size:9px; font-weight:600; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">"La La Land" Soundtr...</div>
+                <div style="font-size:8.5px; color:rgba(255,255,255,0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Ryan Gosling, Emma...</div>
+              </div>
+              <div class="play-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#091126"><polygon points="6,4 20,12 6,20"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Чеки / Заметки -->
+          <div class="icon-box" style="background:#f5f0e6;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a8a29e" stroke-width="1.8" stroke-linecap="round">
+              <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" fill="#fff"/>
+              <line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
+            </svg>
+          </div>
+
+          <!-- 5. Синяя папка/документ -->
+          <div class="icon-box" style="background:linear-gradient(180deg, #38bdf8, #0284c7);">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="#fff">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+              <circle cx="12" cy="14" r="3" fill="#0284c7"/>
+            </svg>
+          </div>
+
+          <!-- РЯД 3-4: Виджет Live 2x2 + Почта, Соцсети, Android, iOS -->
+          <div class="widget-2x2 widget-live">
             <div>
-              <!-- Статус-бар с SVG иконками -->
-              <div class="status-bar">
-                <span>9:41</span>
-                <div class="status-icons">
-                  <!-- Сотовая связь -->
-                  <svg width="13" height="9" viewBox="0 0 13 9" fill="#fff">
-                    <rect x="0" y="6" width="2" height="3" rx="0.6"/>
-                    <rect x="3.5" y="4.2" width="2" height="4.8" rx="0.6"/>
-                    <rect x="7" y="2.2" width="2" height="6.8" rx="0.6"/>
-                    <rect x="10.5" y="0" width="2" height="9" rx="0.6"/>
-                  </svg>
-                  <!-- Wi-Fi -->
-                  <svg width="12" height="9" viewBox="0 0 16 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round">
-                    <path d="M1.5 4.5C5.2 1.2 10.8 1.2 14.5 4.5"/>
-                    <path d="M4.2 7.3C6.4 5.3 9.6 5.3 11.8 7.3"/>
-                    <circle cx="8" cy="10.2" r="1.2" fill="#fff" stroke="none"/>
-                  </svg>
-                  <!-- Батарея -->
-                  <svg width="18" height="9" viewBox="0 0 22 11" fill="none">
-                    <rect x="0.5" y="0.5" width="18" height="10" rx="2.5" stroke="#fff" stroke-opacity="0.6"/>
-                    <rect x="2" y="2" width="15" height="7" rx="1.2" fill="#fff"/>
-                    <path d="M20 3.5V7.5C20.8 7.2 21.3 6.4 21.3 5.5C21.3 4.6 20.8 3.8 20 3.5Z" fill="#fff" fill-opacity="0.6"/>
-                  </svg>
-                </div>
+              <div class="live-header">
+                <span><span class="live-dot"></span>Live</span>
+                <span style="width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                </span>
               </div>
-
-              <!-- Верхние виджеты -->
-              <div class="widgets-row">
-                <!-- Виджет аналоговых часов (как на видео) -->
-                <div class="widget widget-clock">
-                  <svg width="74" height="74" viewBox="0 0 74 74">
-                    <circle cx="37" cy="37" r="35" fill="#fff"/>
-                    <!-- Деления циферблата -->
-                    <g stroke="#1c1c1e" stroke-width="1.5" stroke-linecap="round">
-                      <line x1="37" y1="5" x2="37" y2="9"/>
-                      <line x1="37" y1="65" x2="37" y2="69"/>
-                      <line x1="5" y1="37" x2="9" y2="37"/>
-                      <line x1="65" y1="37" x2="69" y2="37"/>
-                    </g>
-                    <!-- Часовая и минутная стрелки -->
-                    <line x1="37" y1="37" x2="26" y2="25" stroke="#1c1c1e" stroke-width="3" stroke-linecap="round"/>
-                    <line x1="37" y1="37" x2="54" y2="23" stroke="#1c1c1e" stroke-width="2.2" stroke-linecap="round"/>
-                    <!-- Секундная стрелка -->
-                    <line x1="37" y1="43" x2="37" y2="10" stroke="#ff9500" stroke-width="1.2" stroke-linecap="round"/>
-                    <circle cx="37" cy="37" r="2.5" fill="#ff9500"/>
-                  </svg>
-                </div>
-
-                <!-- Виджет погоды с SVG иконкой -->
-                <div class="widget widget-weather">
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:600; font-size:10px;">Берлин</span>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <circle cx="10" cy="10" r="5" fill="#fbbf24"/>
-                      <path d="M10 18H17.5C19.7 18 21.5 16.2 21.5 14C21.5 11.9 19.9 10.2 17.9 10C17.2 7.2 14.6 5 11.5 5C7.9 5 5 7.9 5 11.5C5 11.7 5 11.9 5.1 12.1C3.6 12.6 2.5 14 2.5 15.7C2.5 17.8 4.2 18 6.5 18H10Z" fill="#fff" fill-opacity="0.92"/>
-                    </svg>
-                  </div>
-                  <div style="font-size:23px; font-weight:700; letter-spacing:-0.5px;">18°</div>
-                  <div style="font-size:8.5px; opacity:0.85;">Переменная облачность</div>
-                </div>
-              </div>
-
-              <!-- Широкий виджет аналитики -->
-              <div class="widget-wide">
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px;">
-                  <span style="color:#8e8e93; font-weight:500;">Активность рынка</span>
-                  <span style="color:#30d158; font-weight:700;">+14.8%</span>
-                </div>
-                <div class="chart-line">
-                  <svg class="chart-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#30d158" stop-opacity="0.35"/>
-                        <stop offset="100%" stop-color="#30d158" stop-opacity="0.0"/>
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,32 Q35,28 60,18 T120,20 T170,8 L200,4 L200,40 L0,40 Z" fill="url(#chartGrad)"/>
-                    <path d="M0,32 Q35,28 60,18 T120,20 T170,8 L200,4" fill="none" stroke="#30d158" stroke-width="2.2" stroke-linecap="round"/>
-                  </svg>
-                </div>
-                <div style="font-size:8.5px; color:#8e8e93;">Обновлено только что</div>
-              </div>
-
-              <!-- Иконки приложений (чистый SVG) -->
-              <div class="apps-grid">
-                <!-- Навигатор / Карты -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(145deg, #38bdf8, #2563eb);">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L19 21L12 17L5 21L12 2Z" fill="#fff"/>
-                    </svg>
-                  </div>
-                  <span class="app-label">Карты</span>
-                </div>
-
-                <!-- Календарь -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:#ffffff; flex-direction:column;">
-                    <span style="font-size:7px; font-weight:700; color:#ff3b30; text-transform:uppercase; letter-spacing:0.4px; margin-top:2px;">СР</span>
-                    <span style="font-size:19px; font-weight:300; color:#1c1c1e; line-height:1;">4</span>
-                  </div>
-                  <span class="app-label">Календарь</span>
-                </div>
-
-                <!-- Музыка -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(145deg, #ff5e7e, #ff2d55);">
-                    <svg viewBox="0 0 24 24" fill="#fff">
-                      <path d="M9 17.5C9 19.1569 7.65685 20.5 6 20.5C4.34315 20.5 3 19.1569 3 17.5C3 15.8431 4.34315 14.5 6 14.5C7.65685 14.5 9 15.8431 9 17.5ZM20 15.5C20 17.1569 18.6569 18.5 17 18.5C15.3431 18.5 14 17.1569 14 15.5C14 13.8431 15.3431 12.5 17 12.5C18.6569 12.5 20 13.8431 20 15.5Z"/>
-                      <path d="M8 17.5V6.5L19 4.5V15.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    </svg>
-                  </div>
-                  <span class="app-label">Музыка</span>
-                </div>
-
-                <!-- Настройки -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(145deg, #8e8e93, #3a3a3c);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="3.2"/>
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.77 1.05 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                  </div>
-                  <span class="app-label">Настройки</span>
-                </div>
-
-                <!-- Заметки -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:#ffffff;">
-                    <svg viewBox="0 0 42 42" style="width:100%; height:100%;">
-                      <rect x="0" y="0" width="42" height="12" fill="#ffcc00"/>
-                      <line x1="6" y1="20" x2="36" y2="20" stroke="#d1d1d6" stroke-width="2" stroke-linecap="round"/>
-                      <line x1="6" y1="27" x2="36" y2="27" stroke="#d1d1d6" stroke-width="2" stroke-linecap="round"/>
-                      <line x1="6" y1="34" x2="24" y2="34" stroke="#d1d1d6" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                  </div>
-                  <span class="app-label">Заметки</span>
-                </div>
-
-                <!-- Сообщения -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(180deg, #52e575, #28cd41);">
-                    <svg viewBox="0 0 24 24" fill="#fff">
-                      <path d="M12 4C6.48 4 2 7.58 2 12C2 14.13 3.05 16.07 4.75 17.5C4.5 18.8 3.6 20.1 2.8 20.8C2.6 21 2.75 21.3 3 21.25C4.9 21 6.7 20.1 7.9 19.3C9.18 19.75 10.56 20 12 20C17.52 20 22 16.42 22 12C22 7.58 17.52 4 12 4Z"/>
-                    </svg>
-                  </div>
-                  <span class="app-label">Сообщения</span>
-                </div>
-
-                <!-- Фото (цветок iOS) -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:#ffffff;">
-                    <svg viewBox="0 0 32 32" style="width:28px; height:28px;">
-                      <g opacity="0.85">
-                        <rect x="13" y="3" width="6" height="11" rx="3" fill="#ff9500"/>
-                        <rect x="13" y="18" width="6" height="11" rx="3" fill="#007aff"/>
-                        <rect x="3" y="13" width="11" height="6" rx="3" fill="#ff2d55"/>
-                        <rect x="18" y="13" width="11" height="6" rx="3" fill="#4cd964"/>
-                        <rect x="13" y="3" width="6" height="11" rx="3" fill="#ffcc00" transform="rotate(45 16 16)"/>
-                        <rect x="13" y="18" width="6" height="11" rx="3" fill="#5856d6" transform="rotate(45 16 16)"/>
-                        <rect x="3" y="13" width="11" height="6" rx="3" fill="#ff3b30" transform="rotate(45 16 16)"/>
-                        <rect x="18" y="13" width="11" height="6" rx="3" fill="#34c759" transform="rotate(45 16 16)"/>
-                      </g>
-                    </svg>
-                  </div>
-                  <span class="app-label">Фото</span>
-                </div>
-
-                <!-- Safari -->
-                <div class="app-item">
-                  <div class="app-icon" style="background:linear-gradient(180deg, #38bdf8, #0284c7);">
-                    <svg viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="9.5" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
-                      <polygon points="12,12 16.5,7.5 13.5,13.5" fill="#ff3b30"/>
-                      <polygon points="12,12 7.5,16.5 10.5,10.5" fill="#ffffff"/>
-                    </svg>
-                  </div>
-                  <span class="app-label">Safari</span>
-                </div>
-              </div>
+              <div class="live-number">2</div>
+              <div style="font-size:11px; color:rgba(255,255,255,0.85); margin-top:2px;">people playing now</div>
             </div>
-
-            <!-- Нижний док с SVG иконками -->
-            <div class="dock">
-              <!-- Телефон -->
-              <div class="app-icon" style="background:linear-gradient(180deg, #52e575, #28cd41);">
-                <svg viewBox="0 0 24 24" fill="#fff">
-                  <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.57 3.58a1 1 0 0 1-.25 1.01l-2.2 2.2z"/>
-                </svg>
-              </div>
-              <!-- Почта -->
-              <div class="app-icon" style="background:linear-gradient(180deg, #38bdf8, #2563eb);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="5" width="18" height="14" rx="2"/>
-                  <polyline points="3,7 12,13 21,7"/>
-                </svg>
-              </div>
-              <!-- Файлы -->
-              <div class="app-icon" style="background:#ffffff;">
-                <svg viewBox="0 0 24 24" fill="#007aff">
-                  <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-                </svg>
-              </div>
-              <!-- Подкасты / Медиа -->
-              <div class="app-icon" style="background:linear-gradient(180deg, #c084fc, #7e22ce);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
-                  <circle cx="12" cy="11" r="2" fill="#fff"/>
-                  <path d="M8.5 14.5a5 5 0 1 1 7 0"/>
-                  <path d="M5.5 17.5a9 9 0 1 1 13 0"/>
-                  <line x1="12" y1="15" x2="12" y2="20" stroke-width="2.5"/>
-                </svg>
-              </div>
+            <div>
+              <svg viewBox="0 0 140 32" style="width:100%; height:28px;" fill="none" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 18 L8 26 L14 22 L20 27 L26 20 L32 24 L38 19 L44 23 L50 17 L56 22 L62 15 L68 20 L74 14 L80 19 L86 12 L92 18 L98 11 L104 24 L110 21 L116 25 L122 18 L128 24 L136 22"/>
+              </svg>
+              <div style="font-size:9px; color:rgba(255,255,255,0.45); margin-top:2px;">Past hour · peak/min</div>
             </div>
+          </div>
+
+          <!-- Конверт -->
+          <div class="icon-box" style="background:#f5f0e6;">
+            <svg width="42" height="32" viewBox="0 0 24 18" fill="none" stroke="#1e3a8a" stroke-width="1.6" stroke-linejoin="round">
+              <rect x="1" y="1" width="22" height="16" rx="2" fill="#fff"/>
+              <path d="M1 2l11 7 11-7"/><path d="M1 16l7-6"/><path d="M23 16l-7-6"/>
+              <circle cx="12" cy="9" r="2" fill="#c084fc" stroke="none"/>
+            </svg>
+          </div>
+
+          <!-- Папка соцсетей (X, RED, TikTok, Threads) -->
+          <div class="icon-box social-folder">
+            <div class="mini-social">𝕏</div>
+            <div class="mini-social" style="background:#ff2442; font-size:7px;">小红书</div>
+            <div class="mini-social">♪</div>
+            <div class="mini-social">@</div>
+          </div>
+
+          <!-- Download APK Android -->
+          <div class="icon-box" style="background:#141414; flex-direction:column; gap:2px;">
+            <svg width="28" height="22" viewBox="0 0 24 20" fill="#84cc16">
+              <path d="M6 8a6 6 0 0 1 12 0v7a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8z"/>
+              <line x1="8" y1="2" x2="10" y2="5" stroke="#84cc16" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="16" y1="2" x2="14" y2="5" stroke="#84cc16" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="9.5" cy="7.5" r="1" fill="#141414"/><circle cx="14.5" cy="7.5" r="1" fill="#141414"/>
+            </svg>
+            <span style="font-size:5.5px; color:#a3a3a3; font-weight:700;">DOWNLOAD APK</span>
+            <span style="font-size:10px; color:#fff; font-weight:800; line-height:1;">android</span>
+          </div>
+
+          <!-- Download iOS -->
+          <div class="icon-box" style="background:#141414; flex-direction:column; gap:2px; border:1px solid rgba(255,255,255,0.2);">
+            <svg width="20" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+              <rect x="6" y="2" width="12" height="20" rx="2"/>
+              <path d="M12 7v7"/><polyline points="9,11 12,14 15,11"/>
+            </svg>
+            <span style="font-size:5.5px; color:#a3a3a3; font-weight:700;">DOWNLOAD</span>
+            <span style="font-size:11px; color:#fff; font-weight:800; line-height:1;">iOS</span>
+          </div>
+
+          <!-- РЯД 5: Широкий виджет IPHONE DUO (3 колонки) + Кнопки (1 колонка) -->
+          <div class="widget-3x1">
+            <div style="font-size:9px; color:#e2e8f0; letter-spacing:0.3px;">IPHONE DUO: SUCCESS OR FAILURE?</div>
+            <div class="matrix-bar">
+              <div class="matrix-left"></div>
+              <div class="matrix-right"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:8.5px; color:#94a3b8;">
+              <span>SUCCESS 42%</span>
+              <span>FAILURE 58%</span>
+            </div>
+          </div>
+
+          <!-- Иконка с 4 физическими клавишами -->
+          <div class="icon-box" style="background:#71717a; padding:7px; display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+            <div style="background:#27272a; border-radius:6px; box-shadow:inset 0 1px 1px rgba(255,255,255,0.2);"></div>
+            <div style="background:#27272a; border-radius:6px;"></div>
+            <div style="background:#27272a; border-radius:6px;"></div>
+            <div style="background:#27272a; border-radius:6px;"></div>
+          </div>
+
+          <!-- РЯД 6: 4 нижние иконки перед доком -->
+          <!-- 1. График -->
+          <div class="icon-box" style="background:#1c1c1e;">
+            <svg width="42" height="42" viewBox="0 0 40 40" fill="none">
+              <rect x="8" y="8" width="24" height="24" rx="5" fill="#3f3f46" transform="rotate(-12 20 20)"/>
+              <path d="M4 24 Q14 14 22 20 T36 16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- 2. Тетрис с бейджем 0 -->
+          <div class="icon-box" style="background:#1e2430;">
+            <span class="badge">0</span>
+            <svg width="38" height="38" viewBox="0 0 36 36">
+              <rect x="6" y="12" width="10" height="6" rx="1" fill="#a855f7"/>
+              <rect x="9" y="7" width="4" height="5" rx="1" fill="#a855f7"/>
+              <rect x="20" y="8" width="10" height="10" rx="1" fill="#facc15"/>
+              <rect x="14" y="24" width="12" height="5" rx="1" fill="#fb923c"/>
+              <rect x="21" y="19" width="5" height="5" rx="1" fill="#fb923c"/>
+            </svg>
+          </div>
+
+          <!-- 3. Ноутбук Mac с бейджем new -->
+          <div class="icon-box" style="background:#ffffff; flex-direction:column; justify-content:space-between; padding:8px 6px 6px;">
+            <span class="badge">new</span>
+            <svg width="44" height="28" viewBox="0 0 44 28">
+              <rect x="6" y="2" width="32" height="20" rx="2" fill="#1e293b"/>
+              <rect x="8" y="4" width="28" height="16" fill="#38bdf8"/>
+              <path d="M2 22h40l-3 3H5l-3-3z" fill="#94a3b8"/>
+            </svg>
+            <span style="background:#3f3f46; color:#fff; font-size:10px; font-weight:700; padding:1px 8px; border-radius:8px;">Mac</span>
+          </div>
+
+          <!-- 4. Мозаика/пиксель-арт -->
+          <div class="icon-box" style="background:conic-gradient(from 45deg, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444); overflow:hidden;">
+            <div style="width:100%; height:100%; background-image:radial-gradient(#000 1px, transparent 1px); background-size:4px 4px; opacity:0.35;"></div>
+          </div>
+
+        </div>
+
+        <!-- Нижний док с 4 иконками и бейджами new -->
+        <div class="ios-dock">
+          <!-- Билет -->
+          <div class="icon-box" style="background:#fcd34d;">
+            <span class="badge">new</span>
+            <svg width="40" height="28" viewBox="0 0 40 28" fill="none" stroke="#b45309" stroke-width="2">
+              <rect x="3" y="3" width="34" height="22" rx="3" fill="#fde68a"/>
+              <polygon points="20,8 22,12 26,12 23,15 24,19 20,17 16,19 17,15 14,12 18,12" fill="#f97316" stroke="none"/>
+            </svg>
+          </div>
+
+          <!-- Оранжевая волна -->
+          <div class="icon-box" style="background:#f97316;">
+            <span class="badge">new</span>
+            <svg width="40" height="28" viewBox="0 0 40 28" fill="none" stroke="#1c1917" stroke-width="2.5" stroke-linejoin="round">
+              <path d="M6 22 C8 10, 14 8, 18 16 C22 22, 26 6, 32 14 C35 18, 36 22, 34 22 Z"/>
+            </svg>
+          </div>
+
+          <!-- Радиоприёмник -->
+          <div class="icon-box" style="background:#ffffff;">
+            <span class="badge">new</span>
+            <svg width="40" height="36" viewBox="0 0 40 36">
+              <line x1="10" y1="12" x2="28" y2="5" stroke="#1c1917" stroke-width="2.5" stroke-linecap="round"/>
+              <rect x="6" y="12" width="28" height="18" rx="4" fill="#1d4ed8"/>
+              <rect x="6" y="12" width="16" height="18" rx="4" fill="#ef4444"/>
+              <circle cx="28" cy="21" r="3" fill="#fde047"/>
+            </svg>
+          </div>
+
+          <!-- Шестерёнка Настроек -->
+          <div class="icon-box" style="background:linear-gradient(180deg, #d4d4d8, #71717a);">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#27272a" stroke-width="1.8">
+              <circle cx="12" cy="12" r="8" stroke="#52525b" stroke-width="3" stroke-dasharray="2 1.5"/>
+              <circle cx="12" cy="12" r="4.2" fill="#27272a"/>
+              <circle cx="12" cy="12" r="2" fill="#d4d4d8"/>
+            </svg>
           </div>
         </div>
       </div>
-    </div>
-  </main>
 
-  <section class="controls-wrapper">
-    <div class="controls-header">
-      <span>Tilt to explore</span>
-      <span class="angle-readout" id="angleValue">0°</span>
     </div>
-
-    <div class="ruler-viewport" id="rulerViewport">
-      <div class="center-indicator"></div>
-      <div class="ruler-track" id="rulerTrack"></div>
-    </div>
-
-    <button class="reset-btn" id="resetBtn">Reset</button>
-  </section>
+  </div>
 
   <script>
-    const iphone = document.getElementById('iphone');
-    const chassisLayers = document.getElementById('chassisLayers');
-    const screenContent = document.getElementById('screenContent');
+    const iosScreen = document.getElementById('iosScreen');
+    const blurTarget = document.getElementById('blurTarget');
     const glare = document.getElementById('glare');
-    const rulerTrack = document.getElementById('rulerTrack');
-    const rulerViewport = document.getElementById('rulerViewport');
+    const tiltPill = document.getElementById('tiltPill');
+    const sensorOverlay = document.getElementById('sensorOverlay');
+    const allowBtn = document.getElementById('allowBtn');
+    const sensorStatusMsg = document.getElementById('sensorStatusMsg');
     const stage = document.getElementById('stage');
-    const angleValue = document.getElementById('angleValue');
-    const resetBtn = document.getElementById('resetBtn');
-    const sensorBtn = document.getElementById('sensorBtn');
-    const sensorBtnText = document.getElementById('sensorBtnText');
 
-    // 1. Создаем 3D-слои металлической рамки корпуса
-    for (let z = -15; z <= 0; z += 1.5) {
-      const layer = document.createElement('div');
-      layer.className = 'chassis-layer';
-      layer.style.transform = `translateZ(${z}px)`;
-      chassisLayers.appendChild(layer);
-    }
-
-    // 2. Генерируем шкалу линейки от -80° до +80°
-    const PX_PER_DEGREE = 4.5;
-    const MAX_ANGLE = 70;
-
-    for (let deg = -80; deg <= 80; deg += 2) {
-      const xPos = deg * PX_PER_DEGREE;
-      const isMajor = deg % 10 === 0;
-
-      const tick = document.createElement('div');
-      tick.className = `tick ${isMajor ? 'major' : 'minor'}`;
-      tick.style.left = `${xPos}px`;
-      rulerTrack.appendChild(tick);
-
-      if (isMajor) {
-        const label = document.createElement('div');
-        label.className = 'tick-label';
-        label.style.left = `${xPos}px`;
-        label.textContent = `${deg}°`;
-        rulerTrack.appendChild(label);
-      }
-    }
-
-    // 3. Состояние угла и плавная физика
     let targetAngle = 0;
     let currentAngle = 0;
-    let isDragging = false;
-    let startX = 0;
-    let startAngle = 0;
-    let sensorEnabled = false;
     let baseGamma = null;
+    let sensorsActive = false;
+    let receivedSensorEvent = false;
 
-    function clamp(val, min, max) {
-      return Math.max(min, Math.min(max, val));
+    const MAX_ANGLE = 65;
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
     }
 
-    function updateScene() {
-      currentAngle += (targetAngle - currentAngle) * 0.14;
+    // Главный цикл рендера эффекта размытия и 3D-наклона
+    function renderLoop() {
+      currentAngle += (targetAngle - currentAngle) * 0.16;
 
       const rounded = Math.round(currentAngle);
-      angleValue.textContent = `${rounded}°`;
+      tiltPill.textContent = `Наклон: ${rounded}° (Сброс)`;
 
-      iphone.style.transform = `rotateY(${currentAngle}deg)`;
-      rulerTrack.style.transform = `translateX(${-currentAngle * PX_PER_DEGREE}px)`;
+      // Легкий 3D поворот экрана + сильное размытие при наклоне (эффект приватного стекла)
+      iosScreen.style.transform = `rotateY(${(currentAngle * 0.35).toFixed(2)}deg)`;
 
       const absAngle = Math.abs(currentAngle);
-      const normalized = Math.min(absAngle / 48, 1);
-      const blurPx = (normalized * normalized * 12).toFixed(2);
-      const brightness = (1 - normalized * 0.35).toFixed(2);
+      const norm = Math.min(absAngle / 38, 1); // Полное размытие уже при ~38° наклона
+      const blurPx = (norm * norm * 18).toFixed(2);
+      const brightness = (1 - norm * 0.42).toFixed(2);
 
-      screenContent.style.filter = `blur(${blurPx}px) brightness(${brightness})`;
-      glare.style.opacity = (normalized * 0.85).toFixed(2);
+      blurTarget.style.filter = `blur(${blurPx}px) brightness(${brightness})`;
+      glare.style.opacity = (norm * 0.9).toFixed(2);
 
-      requestAnimationFrame(updateScene);
+      requestAnimationFrame(renderLoop);
     }
 
-    requestAnimationFrame(updateScene);
+    requestAnimationFrame(renderLoop);
 
-    // 4. Управление мышкой и свайпами
-    function onPointerDown(e) {
-      isDragging = true;
-      startX = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
-      startAngle = targetAngle;
-    }
-
-    function onPointerMove(e) {
-      if (!isDragging) return;
-      const clientX = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
-      const deltaX = clientX - startX;
-      targetAngle = clamp(startAngle - deltaX / PX_PER_DEGREE, -MAX_ANGLE, MAX_ANGLE);
-    }
-
-    function onPointerUp() {
-<!false;/html> = false;
-    }
-
-    [stage, rulerViewport].forEach(el => {
-      el.addEventListener('mousedown', onPointerDown);
-      el.addEventListener('touchstart', onPointerDown, { passive: true });
-    });
-
-    window.addEventListener('mousemove', onPointerMove);
-    window.addEventListener('touchmove', onPointerMove, { passive: true });
-    window.addEventListener('mouseup', onPointerUp);
-    window.addEventListener('touchend', onPointerUp);
-
-    resetBtn.addEventListener('click', () => {
-      targetAngle = 0;
-      baseGamma = null;
-    });
-
-    // 5. Подключение датчиков наклона телефона (DeviceOrientation API)
-    function handleOrientation(event) {
-      if (isDragging || event.gamma === null) return;
+    // Обработчик гироскопа (DeviceOrientation)
+    function onDeviceOrientation(e) {
+      if (e.gamma === null || e.gamma === undefined) return;
+      receivedSensorEvent = true;
 
       if (baseGamma === null) {
-        baseGamma = event.gamma;
+        baseGamma = e.gamma;
       }
 
-      const relativeGamma = event.gamma - baseGamma;
-      targetAngle = clamp(relativeGamma * 1.2, -MAX_ANGLE, MAX_ANGLE);
+      let delta = e.gamma - baseGamma;
+      targetAngle = clamp(delta * 1.35, -MAX_ANGLE, MAX_ANGLE);
     }
 
-    async function enableSensors() {
+    // Запасной обработчик акселерометра (DeviceMotion), если orientation заблокирован
+    function onDeviceMotion(e) {
+      if (receivedSensorEvent) return;
+      const acc = e.accelerationIncludingGravity;
+      if (!acc || acc.x === null) return;
+
+      // По оси X ускорение свободного падения дает наклон влево/вправо (-9.8 .. +9.8)
+      const approxAngle = (acc.x / 9.8) * 60;
+      targetAngle = clamp(-approxAngle, -MAX_ANGLE, MAX_ANGLE);
+    }
+
+    // Функция запроса разрешения датчиков
+    async function requestSensors() {
+      // Проверка HTTPS: iOS блокирует датчики по незащищенному HTTP
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        sensorStatusMsg.style.display = 'block';
+        sensorStatusMsg.textContent = 'Внимание: на iPhone датчики работают только по HTTPS! Пока доступно управление свайпом пальцем.';
+        setTimeout(() => sensorOverlay.classList.add('hidden'), 1800);
+        return;
+      }
+
       try {
+        // 1. Запрос для iOS 13+ (DeviceOrientationEvent)
         if (typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function') {
-          const permission = await DeviceOrientationEvent.requestPermission();
-          if (permission !== 'granted') {
-            alert('Доступ к датчикам наклона отклонен.');
+          const res = await DeviceOrientationEvent.requestPermission();
+          if (res !== 'granted') {
+            sensorStatusMsg.style.display = 'block';
+            sensorStatusMsg.textContent = 'Доступ отклонён. Закройте вкладку Safari и откройте снова.';
             return;
           }
         }
 
-        window.addEventListener('deviceorientation', handleOrientation, true);
-        sensorEnabled = true;
+        // 2. Дополнительно запрашиваем DeviceMotionEvent для надежности на iOS
+        if (typeof DeviceMotionEvent !== 'undefined' &&
+            typeof DeviceMotionEvent.requestPermission === 'function') {
+          try { await DeviceMotionEvent.requestPermission(); } catch (_) {}
+        }
+
+<!DOCTYPE html>window.addEventListener('deviceorientation', onDeviceOrientation, true);
+        window.addEventListener('devicemotion', onDeviceMotion, true);
+
+        sensorsActive = true;
         baseGamma = null;
-        sensorBtn.classList.add('active');
-        sensorBtnText.textContent = 'Датчики активны (наклоняйте)';
+        sensorOverlay.classList.add('hidden');
       } catch (err) {
         console.error(err);
-        alert('Не удалось запросить датчики. Убедитесь, что сайт открыт по HTTPS.');
+        sensorOverlay.classList.add('hidden');
       }
     }
 
-    sensorBtn.addEventListener('click', () => {
-      if (!sensorEnabled) {
-        enableSensors();
-      } else {
-        baseGamma = null;
-        targetAngle = 0;
+    // Попытка автозапуска при загрузке (работает на Android, где не нужен клик)
+    window.addEventListener('DOMContentLoaded', () => {
+      const needsiOSPermission =
+        typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function';
+
+      if (!needsiOSPermission && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        // На Android сразу включаем без всяких окон
+        window.addEventListener('deviceorientation', onDeviceOrientation, true);
+        window.addEventListener('devicemotion', onDeviceMotion, true);
+        sensorsActive = true;
+        sensorOverlay.classList.add('hidden');
       }
+    });
+
+    // На iPhone срабатывает по первому же касанию в любом месте оверлея
+    sensorOverlay.addEventListener('click', requestSensors);
+    allowBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      requestSensors();
+    });
+
+    // Сброс калибровки 0° по нажатию на верхнюю плашку
+    tiltPill.addEventListener('click', () => {
+      baseGamma = null;
+      targetAngle = 0;
+    });
+
+    // Свайп пальцем/мышкой влево-вправо (чтобы всегда можно было проверить эффект даже без HTTPS)
+    let dragging = false;
+    let startX = 0;
+    let startAngle = 0;
+
+    stage.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      startX = e.clientX;
+      startAngle = targetAngle;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      targetAngle = clamp(startAngle + dx * 0.25, -MAX_ANGLE, MAX_ANGLE);
+    });
+
+    window.addEventListener('pointerup', () => {
+      dragging = false;
     });
   </script>
 </body>
